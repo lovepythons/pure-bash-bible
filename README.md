@@ -1,3 +1,7 @@
+<p align="center"><b>NEW: <a href="https://github.com/dylanaraps/pure-sh-bible">pure sh bible (📖 A collection of pure POSIX sh alternatives to external processes).</a></b></p>
+
+<br>
+
 <p align="center"><img src="https://raw.githubusercontent.com/odb/official-bash-logo/master/assets/Logos/Icons/PNG/512x512.png" width="200px"></p>
 <h1 align="center">pure bash bible</h1> <p
 align="center">A collection of pure bash alternatives to external
@@ -6,7 +10,6 @@ processes.</p>
 <p align="center"> <a
 href="https://travis-ci.com/dylanaraps/pure-bash-bible"><img
 src="https://travis-ci.com/dylanaraps/pure-bash-bible.svg?branch=master"></a>
-<a href="https://discord.gg/yfa5BDw"><img src="https://img.shields.io/discord/440354555197128704.svg"></a>
 <a href="./LICENSE.md"><img
 src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
 </p>
@@ -638,6 +641,8 @@ fi
 Enabling `extdebug` allows access to the `BASH_ARGV` array which stores
 the current function’s arguments in reverse.
 
+**CAVEAT**: Requires `shopt -s compat44` in `bash` 5.0+.
+
 **Example Function:**
 
 ```sh
@@ -673,6 +678,8 @@ values and a duplicate assignment occurs, bash overwrites the key. This
 allows us to effectively remove array duplicates.
 
 **CAVEAT:** Requires `bash` 4+
+
+**CAVEAT:** List order may not stay the same.
 
 **Example Function:**
 
@@ -875,8 +882,13 @@ file_data="$(<"file")"
 Alternative to the `cat` command.
 
 ```shell
-# Bash <4
+# Bash <4 (discarding empty lines).
 IFS=$'\n' read -d "" -ra file_data < "file"
+
+# Bash <4 (preserving empty lines).
+while read -r line; do
+    file_data+=("$line")
+done < "file"
 
 # Bash 4+
 mapfile -t file_data < "file"
@@ -1058,7 +1070,24 @@ Alternative to the `dirname` command.
 ```sh
 dirname() {
     # Usage: dirname "path"
-    printf '%s\n' "${1%/*}/"
+    local tmp=${1:-.}
+
+    [[ $tmp != *[!/]* ]] && {
+        printf '/\n'
+        return
+    }
+
+    tmp=${tmp%%"${tmp##*[!/]}"}
+
+    [[ $tmp != */* ]] && {
+        printf '.\n'
+        return
+    }
+
+    tmp=${tmp%/*}
+    tmp=${tmp%%"${tmp##*[!/]}"}
+
+    printf '%s\n' "${tmp:-/}"
 }
 ```
 
@@ -1066,10 +1095,10 @@ dirname() {
 
 ```shell
 $ dirname ~/Pictures/Wallpapers/1.jpg
-/home/black/Pictures/Wallpapers/
+/home/black/Pictures/Wallpapers
 
 $ dirname ~/Pictures/Downloads/
-/home/black/Pictures/
+/home/black/Pictures
 ```
 
 ## Get the base-name of a file path
@@ -1080,9 +1109,14 @@ Alternative to the `basename` command.
 
 ```sh
 basename() {
-    # Usage: basename "path"
-    : "${1%/}"
-    printf '%s\n' "${_##*/}"
+    # Usage: basename "path" ["suffix"]
+    local tmp
+
+    tmp=${1%"${1##*[!/]}"}
+    tmp=${tmp##*/}
+    tmp=${tmp%"${2/"$tmp"}"}
+
+    printf '%s\n' "${tmp:-/}"
 }
 ```
 
@@ -1091,6 +1125,9 @@ basename() {
 ```shell
 $ basename ~/Pictures/Wallpapers/1.jpg
 1.jpg
+
+$ basename ~/Pictures/Wallpapers/1.jpg .jpg
+1
 
 $ basename ~/Pictures/Downloads/
 Downloads
@@ -1157,15 +1194,20 @@ Contrary to popular belief, there is no issue in utilizing raw escape sequences.
 
 ## Text Attributes
 
+**NOTE:** Prepend 2 to any code below to turn it's effect off
+(examples: 21=bold text off, 22=faint text off, 23=italic text off).
+
 | Sequence | What does it do? |
 | -------- | ---------------- |
-| `\e[m`  | Reset text formatting and colors.
+| `\e[m` | Reset text formatting and colors. |
 | `\e[1m` | Bold text. |
 | `\e[2m` | Faint text. |
 | `\e[3m` | Italic text. |
 | `\e[4m` | Underline text. |
-| `\e[5m` | Slow blink. |
-| `\e[7m` | Swap foreground and background colors. |
+| `\e[5m` | Blinking text. |
+| `\e[7m` | Highlighted text. |
+| `\e[8m` | Hidden text. |
+| `\e[9m` | Strike-through text. |
 
 
 ## Cursor Movement
@@ -1532,12 +1574,15 @@ Use `#!/usr/bin/env bash` instead of `#!/bin/bash`.
 - The former searches the user's `PATH` to find the `bash` binary.
 - The latter assumes it is always installed to `/bin/` which can cause issues.
 
+**NOTE**: There are times when one may have a good reason for using `#!/bin/bash` or another direct path to the binary.
+
+
 ```shell
 # Right:
 
     #!/usr/bin/env bash
 
-# Wrong:
+# Less right:
 
     #!/bin/bash
 ```
@@ -1911,8 +1956,8 @@ Surprisingly, `sleep` is an external command and not a `bash` built-in.
 
 ```sh
 read_sleep() {
-    # Usage: sleep 1
-    #        sleep 0.2
+    # Usage: read_sleep 1
+    #        read_sleep 0.2
     read -rt "$1" <> <(:) || :
 }
 ```
@@ -2130,7 +2175,7 @@ bkr ./some_script.sh # some_script.sh is now running in the background
 
 Thanks for reading! If this bible helped you in any way and you'd like to give back, consider donating. Donations give me the time to make this the best resource possible. Can't donate? That's OK, star the repo and share it with your friends!
 
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=V7QNJNKS3WYVS"><img src="https://img.shields.io/badge/donate-paypal-yellow.svg"></a> <a href="https://www.patreon.com/dyla"><img src="https://img.shields.io/badge/donate-patreon-yellow.svg"> </a><a href="https://liberapay.com/2211/"><img src="https://img.shields.io/badge/donate-liberapay-yellow.svg"></a>
+<a href="https://www.patreon.com/dyla"><img src="https://img.shields.io/badge/donate-patreon-yellow.svg"></a>
 
 
 Rock on. 🤘

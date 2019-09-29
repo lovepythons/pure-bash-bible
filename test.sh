@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck source=/dev/null
+# shellcheck source=/dev/null disable=2178,2128
 #
 # Tests for the Pure Bash Bible.
 
@@ -69,13 +69,10 @@ test_urldecode() {
 }
 
 test_reverse_array() {
+    shopt -s compat44
     IFS=$'\n' read -d "" -ra result < <(reverse_array 1 2 3 4 5)
     assert_equals "${result[*]}" "5 4 3 2 1"
-}
-
-test_remove_array_dups() {
-    IFS=$'\n' read -d "" -ra result < <(remove_array_dups 1 1 2 2 3 3 4 5)
-    assert_equals "${result[*]}" "1 2 3 4 5"
+    shopt -u compat44
 }
 
 test_cycle() {
@@ -116,7 +113,46 @@ test_count() {
 
 test_dirname() {
     result="$(dirname "/home/black/Pictures/Wallpapers/1.jpg")"
-    assert_equals "$result" "/home/black/Pictures/Wallpapers/"
+    assert_equals "$result" "/home/black/Pictures/Wallpapers"
+
+    result="$(dirname "/")"
+    assert_equals "$result" "/"
+
+    result="$(dirname "/foo")"
+    assert_equals "$result" "/"
+
+    result="$(dirname ".")"
+    assert_equals "$result" "."
+
+    result="$(dirname "/foo/foo")"
+    assert_equals "$result" "/foo"
+
+    result="$(dirname "something/")"
+    assert_equals "$result" "."
+
+    result="$(dirname "//")"
+    assert_equals "$result" "/"
+
+    result="$(dirname "//foo")"
+    assert_equals "$result" "/"
+
+    result="$(dirname "")"
+    assert_equals "$result" "."
+
+    result="$(dirname "something//")"
+    assert_equals "$result" "."
+
+    result="$(dirname "something/////////////////////")"
+    assert_equals "$result" "."
+
+    result="$(dirname "something/////////////////////a")"
+    assert_equals "$result" "something"
+
+    result="$(dirname "something//////////.///////////")"
+    assert_equals "$result" "something"
+
+    result="$(dirname "//////")"
+    assert_equals "$result" "/"
 }
 
 test_basename() {
